@@ -6,6 +6,8 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    base: '/advanced-computer-networks-guide/',
+    publicDir: false as const,
     plugins: [
       react(),
       tailwindcss(),
