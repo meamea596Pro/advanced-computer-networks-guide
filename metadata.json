@@ -1,0 +1,6 @@
+{
+  "name": "Advanced Computer Networks Study Guide (Sections 2–5)",
+  "description": "Exam-first study guide covering Transport Layer Sections 2–5 (UDP, TCP, Stop-and-Wait, Sliding Windows, RTO, Congestion Control) with supplemental IPv4 subnetting practice.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
