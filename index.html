@@ -12,9 +12,86 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=IBM+Plex+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet" />
+    <style>
+      #app-boot-fallback {
+        max-width: 640px;
+        margin: 48px auto;
+        padding: 24px;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-family: "DM Sans", system-ui, -apple-system, sans-serif;
+        color: #0f172a;
+        line-height: 1.6;
+      }
+      #app-boot-fallback h1 {
+        margin: 0 0 8px;
+        font-size: 20px;
+        font-weight: 700;
+      }
+      #app-boot-fallback p {
+        margin: 0 0 12px;
+        font-size: 14px;
+        color: #334155;
+      }
+      #app-boot-fallback .boot-error {
+        display: none;
+        margin-top: 12px;
+        padding: 12px 14px;
+        background: #fffbeb;
+        border: 1px solid #fcd34d;
+        border-radius: 6px;
+        font-size: 13px;
+        color: #78350f;
+      }
+      #app-boot-fallback button {
+        margin-top: 8px;
+        padding: 8px 14px;
+        background: #1d4ed8;
+        color: #ffffff;
+        border: none;
+        border-radius: 6px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+    </style>
   </head>
   <body class="bg-[#F8FAFC] text-slate-900 antialiased">
-    <div id="root"></div>
+    <div id="root">
+      <div id="app-boot-fallback" role="status" aria-live="polite">
+        <h1>Advanced Computer Networks Study Guide (Sections 2–5)</h1>
+        <p id="boot-status">Loading interactive lessons, worked problems, and practice mode…</p>
+        <noscript>
+          <p><strong>JavaScript is disabled.</strong> Please enable JavaScript in your browser to use the interactive study guide and quizzes.</p>
+        </noscript>
+        <div id="boot-error" class="boot-error" role="alert">
+          <strong>The application script did not load.</strong>
+          <p style="margin:6px 0 8px;color:#78350f;">
+            Try reloading the page. If this site is hosted on GitHub Pages, verify that
+            <strong>Settings → Pages → Build and deployment → Source</strong> is set to
+            <strong>GitHub Actions</strong> (so compiled Vite assets from <code>dist/</code> are served rather than raw source HTML).
+          </p>
+          <button type="button" onclick="window.location.reload()">Reload Page</button>
+        </div>
+      </div>
+    </div>
+    <script>
+      (function () {
+        function showBootError() {
+          var fallback = document.getElementById('app-boot-fallback');
+          if (!fallback) return;
+          var err = document.getElementById('boot-error');
+          var status = document.getElementById('boot-status');
+          if (err) err.style.display = 'block';
+          if (status) status.textContent = 'Unable to start the study app.';
+        }
+        window.addEventListener('error', function () {
+          setTimeout(showBootError, 200);
+        });
+        setTimeout(showBootError, 4500);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
