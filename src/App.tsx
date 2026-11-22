@@ -1,200 +1,100 @@
-import { useState } from 'react';
-import { ExternalLink, Menu, X } from 'lucide-react';
-import {
-  COVERAGE_NOTE,
-  CourseSectionId,
-  REFERENCE_SOURCES,
-} from './data/courseContent';
-import { PracticeTopic } from './data/practiceQuestions';
-import { LessonsView } from './components/LessonsView';
-import { QuickRefView } from './components/QuickRefView';
-import { PracticeView } from './components/PracticeView';
-import { SubnettingView } from './components/SubnettingView';
-import { SourcesView } from './components/SourcesView';
+import {useState, useEffect} from 'react';
 
-type AppTab = 'lessons' | 'quickref' | 'practice' | 'subnetting' | 'sources';
-
-const NAV_ITEMS: { id: AppTab; label: string }[] = [
-  { id: 'lessons', label: 'Lessons' },
-  { id: 'quickref', label: 'Quick Sheet' },
-  { id: 'practice', label: 'Practice' },
-  { id: 'subnetting', label: 'Subnetting' },
-  { id: 'sources', label: 'Sources' },
+type Group = 'w1' | 'w2' | 'w34' | 'w5' | 'extra';
+type Question = {id:string; group:Group; prompt:string; options?:string[]; answer:string; explanation:string; hint:string; source:string};
+const groups: {id:Group; label:string; detail:string}[] = [
+  {id:'w1',label:'Week 1',detail:'Transport fundamentals'},
+  {id:'w2',label:'Week 2',detail:'Multiplexing & UDP'},
+  {id:'w34',label:'Weeks 3–4',detail:'Reliable transfer & TCP'},
+  {id:'w5',label:'Week 5',detail:'Congestion control'},
+  {id:'extra',label:'Supplemental',detail:'IPv4 subnetting'},
 ];
+const questions:Question[] = [];
+function mc(group:Group,prompt:string,options:string[],answer:number,explanation:string,source:string,hint:string) {questions.push({id:`q${questions.length+1}`,group,prompt,options,answer:options[answer],explanation,source,hint});}
+function num(group:Group,prompt:string,answer:string,explanation:string,source:string,hint:string) {questions.push({id:`q${questions.length+1}`,group,prompt,answer,explanation,source,hint});}
+mc('w1','Which endpoints does the transport layer logically connect?',['Processes on different hosts','Only adjacent routers','Physical interfaces on one link','Entire networks without applications'],0,'The transport layer provides process-to-process logical communication. IP provides host-to-host delivery.','Week 1, slides 3-7 to 3-9','Think about applications rather than machines.');
+mc('w1','Where do Internet transport protocols primarily run?',['Only in backbone routers','In end systems','Only in Ethernet switches','Only in DNS servers'],1,'TCP and UDP operate in the end systems that send and receive application data. Routers primarily forward IP packets.','Week 1, slide 3-7','Look at the two endpoints.');
+mc('w1','Which is a sender-side transport action?',['Reassembling received messages','Choosing a physical cable','Creating a segment and passing it to IP','Selecting a router queue for every hop'],2,'The sender accepts application data, determines transport-header fields, creates a segment, and passes it to the network layer.','Week 1, slide 3-10','Follow data down the protocol stack.');
+mc('w1','Which service is provided by TCP but not by UDP itself?',['Guaranteed bandwidth','Guaranteed delay','Reliable, in-order delivery','Delivery without IP'],2,'TCP provides reliable ordered delivery, flow control, congestion control, and connection setup. Neither TCP nor UDP guarantees a fixed delay or bandwidth.','Week 1, slide 3-12','Reliability is different from a performance guarantee.');
+mc('w1','A video call needs a strict maximum network delay. Does choosing TCP guarantee that bound?',['Yes, because TCP is reliable','Yes, if a handshake succeeds','No, neither TCP nor UDP guarantees delay','Only when ports are below 1024'],2,'Reliability concerns delivery correctness. The transport services in this lecture do not provide delay or bandwidth guarantees.','Week 1, slide 3-12','Separate delivery order from delivery time.');
+mc('w1','At a receiving host, what does demultiplexing accomplish?',['It compresses the IP header','It delivers data to the appropriate application socket','It guarantees that packets never get lost','It changes the link transmission rate'],1,'The receiver examines transport information and passes the application message to the appropriate socket.','Week 1, slide 3-11','One host may run many applications.');
+mc('w2','In the lecture\'s basic UDP demultiplexing model, which transport field selects the receiving socket?',['Source sequence number','Destination port','Congestion window','TCP flags'],1,'For the basic unconnected UDP socket model shown in the lecture, datagrams for the same local destination port go to that socket even when source IPs or ports differ.','Week 2, slides 3-23 to 3-24','Which local application is the packet addressed to?');
+mc('w2','Which tuple identifies a TCP connection?',['Source and destination ports only','Destination IP only','Source IP, source port, destination IP, destination port','Source MAC and destination MAC'],2,'TCP demultiplexing uses both IP addresses and both port numbers. Connections can share server port 80 while having different client endpoints.','Week 2, slides 3-26 to 3-28','Count four values.');
+mc('w2','A client sends UDP from port 53020 to a server on port 53. What source and destination ports should a normal reply use?',['53020 to 53','53 to 53020','53 to 53','53020 to 53020'],1,'Reply traffic reverses the endpoints: source port 53 and destination port 53020.','Week 2, connectionless demultiplexing example (3-25)','Swap the sender and receiver.');
+mc('w2','Why can UDP avoid the startup RTT of a connection handshake?',['It reserves bandwidth in advance','It has no connection-establishment exchange','It sends all data through TCP first','Its checksum establishes a connection'],1,'UDP is connectionless and does not perform a transport handshake before sending a datagram.','Week 2, slide 3-30','Connectionless means no setup exchange.');
+num('w2','A UDP datagram has a Length field of 208 bytes. How many payload bytes does it contain? Enter a number.','200','The UDP Length includes its fixed 8-byte header: 208 − 8 = 200 payload bytes.','Week 2, slide 3-36','Subtract the four 16-bit header fields.');
+num('w2','An application passes 512 bytes to UDP. What is the UDP Length field in bytes? Enter a number.','520','UDP Length = 512 bytes of data + 8 bytes of UDP header = 520 bytes. IP headers are not part of UDP Length.','Week 2, slide 3-36','Add the UDP header, not the IP header.');
+mc('w2','What does a matching Internet checksum establish?',['The segment cannot contain any errors','No error was detected, although some errors can go undetected','The packet will be retransmitted automatically','The data arrived in order'],1,'The checksum detects many bit errors but is not perfect protection. Different bit patterns can have the same checksum.','Week 2, slides 3-37 to 3-40','Detection is not proof of perfect data.');
+num('w2','Using 16-bit one\'s-complement arithmetic, what hexadecimal checksum results from words 0xFFFF and 0x0001? Enter four hex digits.','FFFE','0xFFFF + 0x0001 = 0x10000. Wrap the carry around: 0x0000 + 1 = 0x0001. Complement all 16 bits to obtain 0xFFFE.','Week 2, Internet checksum (3-38 to 3-39)','Wrap the carry before taking the complement.');
+mc('w2','An application needs reliable delivery while using UDP. What must supply that reliability?',['UDP always supplies it automatically','The application or a protocol built above UDP','The Ethernet destination address','The destination port alone'],1,'UDP itself supplies no retransmission or ordering service. A protocol above UDP must implement the needed reliability and congestion control.','Week 2, slide 3-31','UDP is a minimal transport service.');
+mc('w34','What is the key failure of rdt2.0 when an ACK or NAK is corrupted?',['The sender cannot know whether the data was accepted','The receiver cannot read port numbers','The data packet becomes larger','The network changes to circuit switching'],0,'Corrupted feedback leaves the sender uncertain. Retransmitting can produce duplicates, so later versions add sequence numbers and duplicate detection.','Weeks 3–4, slides 3-56 to 3-59','The data may have arrived even though the reply is damaged.');
+mc('w34','Why do alternating-bit protocols add sequence numbers 0 and 1?',['To encode IP addresses','To distinguish a retransmission from the next new packet','To increase bandwidth','To remove all ACKs'],1,'With one outstanding data packet, alternating sequence values let the receiver recognize a duplicate and avoid delivering it twice.','Weeks 3–4, slides 3-57 to 3-59','A repeated packet must not become repeated application data.');
+mc('w34','Which additional mechanism lets rdt3.0 recover when a data packet or ACK is lost?',['A countdown timer and retransmission','A larger checksum alone','A permanently open receive window','A new MAC address'],0,'Without a response, a sender needs a timeout to trigger retransmission. Sequence numbers handle duplicates caused by an unnecessarily early timeout.','Weeks 3–4, slides 3-62 to 3-67','Silence cannot trigger an ACK event.');
+num('w34','A stop-and-wait sender uses a 10 Mbps link, 10,000-bit packets, and a 19 ms propagation RTT. Ignore ACK transmission time and processing. What is utilization as a percentage? Enter a number.','5','Transmission time L/R = 10,000 / 10,000,000 = 0.001 s = 1 ms. Utilization = 1 / (19 + 1) = 0.05 = 5%. Here RTT excludes the packet transmission time.','Weeks 3–4, slides 3-68 to 3-70','Use (L/R)/(RTT + L/R).');
+num('w34','With the same 1 ms packet transmission time and 19 ms propagation RTT, a loss-free sender pipelines 8 packets. Ignore ACK transmission time. What is ideal utilization as a percentage?','40','Ideal utilization = min(1, N(L/R)/(RTT + L/R)) = 8 × 1/20 = 0.40 = 40%.','Weeks 3–4, slides 3-71 to 3-72','Multiply the stop-and-wait utilization by the window size, capped at 100%.');
+mc('w34','In the lecture\'s Go-Back-N model, ACK(6) cumulatively acknowledges which packets?',['Packet 6 only','Every packet through sequence 6','Every packet beginning at 6','Only packet 5'],1,'The packet-number ACK convention in this GBN model covers all packets up to and including n. This differs from TCP byte ACKs, which name the next byte expected.','Weeks 3–4, slide 3-73','Do not confuse packet-number GBN ACKs with TCP byte ACKs.');
+mc('w34','Packets 4, 5, 6 and 7 are outstanding in GBN. Packet 4 times out. What is retransmitted?',['Only packet 4','Only packet 7','Packets 4, 5, 6 and 7','No packets until a NAK arrives'],2,'GBN retransmits the oldest timed-out packet and all later outstanding packets in its current window.','Weeks 3–4, slide 3-73','Go back to the missing packet.');
+mc('w34','In Selective Repeat, packet 4 times out while packets 5–7 have already been individually ACKed. What is retransmitted?',['Packets 4–7','Only packet 4','Only packet 5','The whole connection'],1,'SR tracks packets individually and retransmits the packet whose timer expires, avoiding retransmission of already ACKed later packets.','Weeks 3–4, slides 3-76 to 3-79','Selective means per-packet recovery.');
+num('w34','Selective Repeat uses a 4-bit sequence number and equal sender/receiver windows. What is the largest safe window size under the standard half-sequence-space rule?','8','There are 2^4 = 16 sequence values. To prevent old packets being confused with new ones after wraparound, use N ≤ 16/2 = 8.','Weeks 3–4, sequence-space dilemma (3-80 to 3-81)','The sequence space must cover two windows.');
+mc('w34','Which statement about the TCP data service is correct?',['It preserves each application write as a separate message','It is a reliable ordered byte stream without message boundaries','It sends one application message per connection','It is strictly one-way'],1,'TCP is full-duplex and byte-stream oriented. Segment and application-write boundaries are not preserved as message boundaries.','Weeks 3–4, slide 3-83','Think bytes, not messages.');
+num('w34','A TCP segment starts at sequence number 9000 and carries 600 data bytes. If all earlier bytes are present, what ACK number does the receiver send?','9600','The segment covers bytes 9000 through 9599. TCP ACKs the next byte expected, so ACK = 9600.','Weeks 3–4, slides 3-84 to 3-86','ACK names the next byte, not the last byte received.');
+num('w34','A receiver expects TCP byte 3000. A later segment beginning at 3400 arrives before the gap is filled. What cumulative ACK number should it send?','3000','The missing byte is still 3000, so the duplicate cumulative ACK remains 3000 even if later bytes are buffered.','Weeks 3–4, slide 3-91','A cumulative ACK cannot jump over missing bytes.');
+num('w34','EstimatedRTT is 80 ms, SampleRTT is 120 ms, and alpha is 0.125. What is the updated EstimatedRTT in milliseconds?','85','EstimatedRTT = 0.875 × 80 + 0.125 × 120 = 70 + 15 = 85 ms.','Weeks 3–4, slide 3-88','Take a weighted average.');
+num('w34','For the lecture\'s simplified timeout formula, EstimatedRTT = 90 ms and DevRTT = 15 ms. What is TimeoutInterval in milliseconds, before any implementation-specific lower bound?','150','TimeoutInterval = EstimatedRTT + 4 × DevRTT = 90 + 60 = 150 ms. This explicitly asks for the lecture formula, not a full RFC 6298 implementation with its recommended 1-second minimum.','Weeks 3–4, slide 3-89','Add four deviations as a safety margin.');
+mc('w34','Why does the lecture omit retransmitted segments from SampleRTT measurements?',['Their ACK timing is ambiguous','Their checksums are absent','TCP does not ACK retransmissions','Their payload is always empty'],0,'An ACK after retransmission may correspond to the original transmission or the retransmission, making the RTT sample ambiguous.','Weeks 3–4, slide 3-87','Which send time produced the ACK?');
+mc('w34','What event triggers TCP fast retransmit in the lecture model?',['One ACK of any kind','Three duplicate ACKs for the same missing byte','A receiver window increase','Every new connection'],1,'Three duplicate ACKs suggest a missing segment, allowing retransmission before the retransmission timer expires. They are evidence of likely loss, not absolute proof.','Weeks 3–4, slide 3-94','Fast recovery reacts before a timeout.');
+num('w34','A TCP receive buffer has capacity 12,000 bytes and contains 4,500 unread bytes. Ignoring window scaling and other bookkeeping, what receive window is available in bytes?','7500','Free receive capacity = 12,000 − 4,500 = 7,500 bytes. Advertising rwnd prevents the sender from overrunning the receiver buffer.','Weeks 3–4, slides 3-99 to 3-101','Subtract occupied space from total capacity.');
+num('w34','A client SYN uses initial sequence number 4100. What ACK value should the server put in its SYN-ACK?','4101','A SYN consumes one sequence number, so the server acknowledges 4100 + 1 = 4101.','Weeks 3–4, slide 3-107','Connection-control flags can consume sequence space.');
+mc('w34','How is a normal TCP connection closed in the lecture model?',['Only the server can close','Each side closes its sending direction with FIN, acknowledged by the peer','A checksum of zero closes both directions','UDP sends a close packet'],1,'TCP is full-duplex. Each endpoint closes its side using FIN; the other acknowledges it. A FIN and ACK may be combined.','Weeks 3–4, slide 3-109','There are two sending directions.');
+mc('w5','What does additive increase mean in the lecture\'s congestion-avoidance model?',['Double cwnd every ACK','Increase cwnd by about one MSS per RTT','Set cwnd to one MSS each RTT','Never increase the sending rate'],1,'In congestion avoidance, classic AIMD increases cwnd roughly linearly by one MSS per RTT, unlike exponential slow start.','Week 5, slides 3-125 and 3-130','Linear growth differs from doubling.');
+num('w5','Assume the lecture\'s slow-start model begins at cwnd = 1 MSS, doubles every RTT, and has no loss or threshold limit. What is cwnd after 4 complete RTTs, in MSS?','16','Starting at 1, the window progresses 2, 4, 8, 16 MSS over four RTTs. This is the lecture model, not a claim that all current TCPs start at one MSS.','Week 5, slide 3-128','Apply doubling four times.');
+num('w5','In the lecture\'s timeout model, cwnd was 24 MSS immediately before a timeout. What is the new ssthresh in MSS?','12','The model sets ssthresh to half the pre-loss cwnd: 24/2 = 12 MSS, and resets cwnd to 1 MSS on timeout.','Week 5, slides 3-129 to 3-130','Use the window before the loss.');
+num('w5','A sender has cwnd = 30,000 bytes and RTT = 0.05 s. Ignoring all other limits, what is its approximate rate in bytes per second?','600000','Approximate TCP rate = cwnd/RTT = 30,000/0.05 = 600,000 bytes/s. This is not bits/s and assumes a full window can remain in flight.','Week 5, slide 3-127','Divide bytes in flight by seconds.');
+mc('w5','Near its previous maximum window Wmax, how does the lecture describe CUBIC growth?',['More cautious than when far from Wmax','Always exactly one MSS per RTT','No further growth is permitted','It switches to UDP'],0,'CUBIC changes its window as a cubic function of time relative to K, approaching the previous loss window more cautiously and growing faster farther from that region.','Week 5, slides 3-131 to 3-132','The growth rate depends on distance from the prior maximum.');
+num('w5','A flow estimates its bottleneck bandwidth share as 8 Mbps and minimum RTT as 40 ms. What is the bandwidth-delay product in bytes?','40000','8,000,000 bits/s × 0.040 s = 320,000 bits. Divide by 8 to obtain 40,000 bytes in flight.','Week 5, slides 3-136 to 3-139','Convert bits to bytes after multiplying.');
+mc('w5','What happens if a sender injects more data after a bottleneck is already fully utilized?',['Throughput always rises in proportion','Queueing delay can rise without a corresponding throughput increase','RTT becomes zero','The receiver automatically doubles link capacity'],1,'Extra in-flight data can build a queue at an already busy bottleneck, increasing RTT rather than useful throughput.','Week 5, slides 3-133 to 3-138','A full-rate link cannot transmit faster merely because its queue grows.');
+mc('w5','Which measurements guide BBR in the lecture?',['Only UDP destination ports','Bottleneck bandwidth and minimum RTT','Only packet checksum values','DNS response time and TTL'],1,'BBR estimates delivery capacity and minimum RTT to keep enough data in flight to fill the path without maintaining an unnecessarily large queue.','Week 5, slides 3-136 to 3-139','Its name names the two quantities.');
+mc('w5','How does ECN communicate congestion to a TCP sender?',['A router marks IP congestion information and the receiver echoes it using ECE','The router rewrites the application message','The receiver sets the UDP Length to zero','The sender ignores all ACKs'],0,'ECN uses IP marking by the network and TCP feedback from the receiver, so congestion can be signaled without requiring a packet drop.','Week 5, slide 3-140','The network marks; the receiver reports.');
+num('w5','Under the lecture\'s idealized equal-share fairness assumptions, 6 TCP sessions share a 48 Mbps bottleneck. What average rate should each receive in Mbps?','8','Equal per-connection share = R/K = 48/6 = 8 Mbps. This assumes idealized comparable flows, not a universal real-world guarantee.','Week 5, slides 3-141 to 3-142','Divide link rate by session count.');
+mc('w5','Why can an application gain a larger aggregate share by opening many parallel TCP connections?',['Fairness in the model is per connection, not per application','Each connection creates a new physical link','TCP guarantees equal shares to applications','Parallel connections disable all ACKs'],0,'If each flow obtains a share, an application owning several flows receives several shares. Equal flow-level sharing does not ensure equal application-level sharing.','Week 5, slide 3-143','An application can own more than one competing flow.');
+num('extra','For a conventional IPv4 /26 LAN, how many usable host addresses are available?','62','A /26 leaves 6 host bits: 2^6 = 64 total addresses. Reserve network and broadcast, leaving 62. This is supplemental, not a claim about lecture coverage.','Supplemental IPv4 practice','Count host bits, then subtract two.');
+num('extra','For a conventional IPv4 /20 LAN, how many usable host addresses are available?','4094','A /20 leaves 12 host bits: 2^12 − 2 = 4096 − 2 = 4094 usable addresses.','Supplemental IPv4 practice','IPv4 has 32 address bits.');
+num('extra','What is the network address for 192.168.10.173/26? Enter dotted decimal.','192.168.10.128','A /26 has blocks of 64 in the last octet. 173 lies in 128–191, so the network is 192.168.10.128 and broadcast is 192.168.10.191.','Supplemental IPv4 practice','Find the multiple-of-64 block containing 173.');
+mc('extra','Which subnet mask corresponds to /20?',['255.255.255.0','255.255.240.0','255.255.252.0','255.255.255.192'],1,'The first 16 bits fill two octets. Four more one-bits give 11110000 = 240 in the third octet, producing 255.255.240.0.','Supplemental IPv4 practice','Place 20 consecutive one-bits in the mask.');
 
-export default function App() {
-  const [activeTab, setActiveTab] = useState<AppTab>('lessons');
-  const [activeSection, setActiveSection] = useState<CourseSectionId>('sec2');
-  const [practiceFilter, setPracticeFilter] = useState<PracticeTopic | 'all'>('all');
-  const [showArabicCues, setShowArabicCues] = useState<boolean>(true);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
-
-  const navigateTo = (tab: AppTab) => {
-    setActiveTab(tab);
-    setMobileMenuOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleGoToPracticeTopic = (topic: PracticeTopic) => {
-    setPracticeFilter(topic);
-    setActiveTab('practice');
-    setMobileMenuOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  return (
-    <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-slate-900">
-      {/* Strict 3-Zone Top Bar */}
-      <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur-xs">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-8 px-4 py-3 sm:px-6">
-          {/* Zone 1: Single-line Brand Wordmark */}
-          <button
-            type="button"
-            onClick={() => navigateTo('lessons')}
-            className="text-base font-bold tracking-tight text-slate-900 whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
-          >
-            ACN Study Guide
-          </button>
-
-          {/* Zone 2: 5 Concise Single-Line Text Nav Links */}
-          <nav
-            className="hidden md:flex items-center gap-6 text-sm font-medium"
-            aria-label="Primary navigation"
-          >
-            {NAV_ITEMS.map((item) => {
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  type="button"
-                  onClick={() => navigateTo(item.id)}
-                  className={`whitespace-nowrap shrink-0 py-1 transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 ${
-                    isActive
-                      ? 'text-blue-700 underline underline-offset-8 decoration-2'
-                      : 'text-slate-600 hover:text-slate-900 hover:underline underline-offset-8 decoration-slate-300'
-                  }`}
-                >
-                  {item.label}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* Zone 3: 1 Primary Action (+ mobile menu toggle on small screens) */}
-          <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={() => {
-                setPracticeFilter('all');
-                navigateTo('practice');
-              }}
-              className="rounded-md bg-blue-700 px-3.5 py-2 text-xs font-semibold text-white hover:bg-blue-800 transition-colors whitespace-nowrap shrink-0 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
-            >
-              Start Practice
-            </button>
-            <button
-              type="button"
-              onClick={() => setMobileMenuOpen((o) => !o)}
-              aria-expanded={mobileMenuOpen}
-              aria-label="Toggle navigation menu"
-              className="md:hidden rounded-md border border-slate-200 p-2 text-slate-700 hover:bg-slate-50"
-            >
-              {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Drawer */}
-        {mobileMenuOpen && (
-          <nav
-            className="md:hidden border-t border-slate-200 bg-white px-4 py-2 space-y-1"
-            aria-label="Mobile navigation"
-          >
-            {NAV_ITEMS.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => navigateTo(item.id)}
-                className={`block w-full rounded-md px-3 py-2 text-left text-sm font-medium ${
-                  activeTab === item.id
-                    ? 'bg-blue-50 text-blue-800'
-                    : 'text-slate-700 hover:bg-slate-50'
-                }`}
-              >
-                {item.label}
-              </button>
-            ))}
-          </nav>
-        )}
-      </header>
-
-      {/* Persistent Visible Coverage Note */}
-      <div className="no-print border-b border-amber-200 bg-amber-50/70">
-        <div className="mx-auto max-w-6xl px-4 py-2.5 sm:px-6 flex flex-wrap items-center justify-between gap-2 text-xs text-amber-950">
-          <p className="leading-relaxed">
-            <strong>Coverage Caveat (Sections 2–5 Draft):</strong> Built only from Sections 2–5 course PDFs (UDP, TCP, Stop-and-Wait/Sliding Windows, RTO, Congestion Control) because the full Moodle inventory is unavailable—this does not cover the entire course. IPv4 Subnetting is a separate supplemental practice section.
-          </p>
-          <button
-            type="button"
-            onClick={() => navigateTo('sources')}
-            className="font-semibold text-amber-900 underline underline-offset-2 hover:text-slate-900 whitespace-nowrap shrink-0"
-          >
-            Scope & Sources
-          </button>
-        </div>
-      </div>
-
-      {/* Main Study Workspace */}
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-7 sm:px-6 sm:py-8">
-        {activeTab === 'lessons' && (
-          <LessonsView
-            activeSection={activeSection}
-            onSelectSection={setActiveSection}
-            showArabicCues={showArabicCues}
-            onToggleArabicCues={() => setShowArabicCues((v) => !v)}
-            onGoToPractice={handleGoToPracticeTopic}
-          />
-        )}
-        {activeTab === 'quickref' && <QuickRefView showArabicCues={showArabicCues} />}
-        {activeTab === 'practice' && (
-          <PracticeView
-            key={practiceFilter}
-            initialFilter={practiceFilter}
-            showArabicCues={showArabicCues}
-          />
-        )}
-        {activeTab === 'subnetting' && <SubnettingView showArabicCues={showArabicCues} />}
-        {activeTab === 'sources' && <SourcesView />}
-      </main>
-
-      {/* Compact Persistent Sources Panel Footer */}
-      <footer className="border-t border-slate-200 bg-white mt-10">
-        <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 space-y-3">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-xs font-semibold text-slate-900">
-              Primary Technical References (RFC Editor · Wireshark · Cisco Learning Network)
-            </h2>
-            <span className="text-xs text-slate-500">
-              {COVERAGE_NOTE.title} · Static client-only draft
-            </span>
-          </div>
-
-          <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
-            {REFERENCE_SOURCES.map((ref) => (
-              <a
-                key={ref.id}
-                href={ref.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-blue-700 hover:underline whitespace-nowrap"
-              >
-                <span>{ref.title.split(' — ')[0]}</span>
-                <ExternalLink className="h-3 w-3 shrink-0" aria-hidden="true" />
-              </a>
-            ))}
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
+const normalize = (s:string) => s.trim().toLowerCase().replace(/,/g,'').replace(/\s+/g,' ');
+export default function App(){
+  const [group,setGroup]=useState<Group|'all'>('all');
+  const [position,setPosition]=useState(0);
+  const [answers,setAnswers]=useState<Record<string,string>>({});
+  const [checked,setChecked]=useState<Record<string,boolean>>({});
+  const [revealed,setRevealed]=useState<Record<string,boolean>>({});
+  const [hints,setHints]=useState<Record<string,boolean>>({});
+  useEffect(()=>{document.title='Advanced Computer Networks Quiz';},[]);
+  const visible=questions.filter(q=>group==='all'||q.group===group);
+  const q=visible[Math.min(position,visible.length-1)];
+  const answered=visible.filter(x=>x.id in checked).length;
+  const correct=visible.filter(x=>checked[x.id]===true).length;
+  const choose=(id:Group|'all')=>{setGroup(id);setPosition(0);};
+  const check=()=>{if(!(answers[q.id]||'').trim())return;setChecked({...checked,[q.id]:normalize(answers[q.id])===normalize(q.answer)});setRevealed({...revealed,[q.id]:true});};
+  const reset=()=>{setAnswers({});setChecked({});setRevealed({});setHints({});setPosition(0);};
+  return <div className="min-h-screen bg-slate-50 text-slate-900">
+    <header className="border-b border-slate-200 bg-white"><div className="mx-auto max-w-4xl px-4 py-5 sm:px-6"><p className="text-xs font-semibold uppercase tracking-widest text-blue-700">Lecture practice</p><h1 className="mt-1 text-xl font-bold sm:text-2xl">Advanced Computer Networks Quiz</h1><p className="mt-2 text-sm text-slate-500">Original questions based on the supplied Week 1, Week 2, Weeks 3–4 and Week 5 lecture material. Subnetting is separate supplemental practice. Not a complete-course question bank.</p></div></header>
+    <main className="mx-auto max-w-4xl space-y-5 px-4 py-6 sm:px-6">
+      <div className="flex flex-wrap gap-2" aria-label="Choose lecture week"><button onClick={()=>choose('all')} aria-pressed={group==='all'} className={`rounded-lg border px-3 py-2 text-sm ${group==='all'?'border-blue-700 bg-blue-700 text-white':'border-slate-200 bg-white'}`}>All questions ({questions.length})</button>{groups.map(g=><button key={g.id} onClick={()=>choose(g.id)} aria-pressed={group===g.id} title={g.detail} className={`rounded-lg border px-3 py-2 text-sm ${group===g.id?'border-blue-700 bg-blue-700 text-white':'border-slate-200 bg-white'}`}>{g.label} ({questions.filter(x=>x.group===g.id).length})</button>)}</div>
+      <div className="flex flex-wrap items-center justify-between gap-3 text-sm"><p role="status">Checked <strong>{answered}/{visible.length}</strong><span className="mx-2 text-slate-300">|</span>Correct <strong>{correct}</strong></p><button onClick={reset} className="rounded-md border border-slate-300 bg-white px-3 py-2 text-sm">Reset all answers</button></div>
+      <article className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+        <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500"><span>{groups.find(g=>g.id===q.group)?.label} · {groups.find(g=>g.id===q.group)?.detail}</span><span>Question {position+1} of {visible.length}</span></div>
+        <h2 className="mt-5 text-lg font-semibold leading-relaxed sm:text-xl">{q.prompt}</h2>
+        {q.options?<fieldset className="mt-6 space-y-3"><legend className="sr-only">Select an answer</legend>{q.options.map((option,i)=><label key={option} className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 text-sm leading-relaxed ${answers[q.id]===option?'border-blue-600 bg-blue-50':'border-slate-200 hover:bg-slate-50'}`}><input className="mt-1 shrink-0" type="radio" name={q.id} checked={answers[q.id]===option} onChange={()=>setAnswers({...answers,[q.id]:option})}/><span><span className="mr-2 font-semibold text-slate-500">{String.fromCharCode(65+i)}.</span>{option}</span></label>)}</fieldset>:<div className="mt-6"><label htmlFor="quiz-answer" className="mb-2 block text-sm font-medium">Your answer</label><input id="quiz-answer" key={q.id} autoComplete="off" value={answers[q.id]||''} onChange={e=>setAnswers({...answers,[q.id]:e.target.value})} onKeyDown={e=>{if(e.key==='Enter')check();}} className="w-full rounded-lg border border-slate-300 px-4 py-3 text-base focus:border-blue-600 focus:outline-blue-600" placeholder="Enter your answer"/></div>}
+        <div className="mt-6 flex flex-wrap gap-2"><button onClick={check} disabled={!(answers[q.id]||'').trim()} className="rounded-lg bg-blue-700 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40">Check answer</button><button onClick={()=>setHints({...hints,[q.id]:!hints[q.id]})} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm">{hints[q.id]?'Hide hint':'Hint'}</button><button onClick={()=>setRevealed({...revealed,[q.id]:!revealed[q.id]})} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm">{revealed[q.id]?'Hide solution':'Reveal solution'}</button></div>
+        {hints[q.id]&&<p className="mt-4 rounded-lg bg-slate-100 p-4 text-sm"><strong>Hint: </strong>{q.hint}</p>}
+        {q.id in checked&&<p role="status" className={`mt-4 font-semibold ${checked[q.id]?'text-teal-700':'text-red-700'}`}>{checked[q.id]?'Correct':'Not quite. Review the solution and try again.'}</p>}
+        {revealed[q.id]&&<section aria-label="Answer and explanation" className="mt-4 rounded-lg border border-blue-100 bg-blue-50 p-4 text-sm leading-relaxed"><h3 className="font-semibold">Answer: {q.answer}</h3><p className="mt-2">{q.explanation}</p><p className="mt-3 text-xs text-slate-500">Topic reference: {q.source}. Questions and explanations are newly written, not copied slide questions.</p></section>}
+      </article>
+      <nav aria-label="Question navigation" className="flex items-center justify-between gap-4"><button disabled={position===0} onClick={()=>setPosition(position-1)} className="rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm disabled:opacity-40">Previous</button><span className="text-xs text-slate-500">{position+1} / {visible.length}</span><button disabled={position===visible.length-1} onClick={()=>setPosition(position+1)} className="rounded-lg bg-slate-900 px-5 py-2.5 text-sm text-white disabled:opacity-40">Next question</button></nav>
+      <details className="rounded-lg border border-slate-200 bg-white p-4"><summary className="cursor-pointer text-sm font-medium">Jump to a question</summary><div className="mt-3 flex flex-wrap gap-2">{visible.map((x,i)=><button key={x.id} aria-label={`Go to question ${i+1}`} aria-current={position===i?'step':undefined} onClick={()=>setPosition(i)} className={`h-9 min-w-9 rounded-md border px-2 text-xs ${position===i?'border-blue-700 bg-blue-700 text-white':x.id in checked?(checked[x.id]?'border-teal-300 bg-teal-50':'border-red-300 bg-red-50'):'border-slate-200'}`}>{i+1}</button>)}</div></details>
+      <footer className="pb-6 text-xs leading-relaxed text-slate-400">Practice only. Lecture topics follow the supplied course materials, adapted from Kurose and Ross, Computer Networking: A Top-Down Approach. Original source files are not hosted here. Answers use the stated model and assumptions.</footer>
+    </main>
+  </div>;
 }
